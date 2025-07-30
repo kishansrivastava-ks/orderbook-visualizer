@@ -1,4 +1,4 @@
-Orderbook Depth 3D Visualizer
+*Orderbook Depth 3D Visualizer*
 
 This project is a Next.js application that provides a real-time, interactive 3D visualization of cryptocurrency order book data. It is designed to offer a deeper understanding of market dynamics by representing price, quantity, and time in a 3D environment, complete with features like pressure zone analysis and interactive controls.
 
@@ -58,10 +58,11 @@ Local Setup Instructions
 Follow these steps to run the project on your local machine.
 
 Prerequisites
+
 Node.js (v18.x or later recommended)
-
+```bash
 npm or yarn
-
+```
 Installation & Setup
 Clone the repository:
 
