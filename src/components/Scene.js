@@ -6,7 +6,10 @@ import RotatingGroup from "./RotatingGroup";
 import Bar from "./Bar";
 import { useTheme } from "@/context/ThemeContext";
 
-const Z_SPACING = 0.5;
+// --- Constants ---
+const Z_SPACING = 0.5; // Spacing between historical snapshots along the Z-axis.
+
+// --- Theme Color Definitions ---
 const darkThemeColors = {
   bid: "#10b981",
   ask: "#ef4444",
@@ -31,7 +34,13 @@ const lightThemeColors = {
   background: "#e5e7eb",
 };
 
+// --- Sub-components ---
+
+/**
+ * Renders price tick markers along the X-axis for better readability.
+ */
 const PriceTicks = ({ bids, asks, centerPrice }) => {
+  // Display a tick for every 5th order to avoid clutter.
   const bidTicks = bids.filter((_, i) => i > 0 && i % 5 === 0);
   const askTicks = asks.filter((_, i) => i > 0 && i % 5 === 0);
 
@@ -53,15 +62,18 @@ const PriceTicks = ({ bids, asks, centerPrice }) => {
   );
 };
 
-const HoverInfo = ({ data, centerPrice }) => {
+/**
+ * Displays a text label with price and quantity when hovering over a bar.
+ */
+const HoverInfo = ({ data, centerPrice, colors }) => {
   if (!data) return null;
 
   return (
     <Text
       position={[data.price - centerPrice, data.cumulativeQuantity + 2, 0]}
       fontSize={0.6}
-      color={COLORS.textPrimary}
-      backgroundColor={COLORS.background}
+      color={colors.textPrimary}
+      backgroundColor={colors.background}
       padding={0.2}
       borderRadius={0.1}
       anchorX="center"
@@ -73,6 +85,10 @@ const HoverInfo = ({ data, centerPrice }) => {
   );
 };
 
+/**
+ * The main 3D Scene component. It fetches order book data, processes it for visualization,
+ * and renders the entire 3D environment using React Three Fiber.
+ */
 const Scene = ({
   symbol,
   autoRotate,
@@ -85,17 +101,20 @@ const Scene = ({
   const { theme } = useTheme();
   const COLORS = theme === "dark" ? darkThemeColors : lightThemeColors;
 
+  // Fetch real-time data using the custom hook.
   const history = useOrderbook(symbol, timeRange);
   const [hoveredData, setHoveredData] = useState(null);
 
-  // Memoize all data processing to prevent re-calculations on every render.
+  // Memoize the entire data processing pipeline. This is critical for performance,
+  // as it prevents expensive calculations on every re-render. The block only re-runs
+  // when its dependencies (e.g., `history`, `quantityThreshold`) change.
   const processedData = useMemo(() => {
     if (!history || history.length === 0) return { snapshots: [] };
 
     const latest = history[0];
     if (!latest.bids?.[0] || !latest.asks?.[0]) return { snapshots: [] };
 
-    // 1. Filter latest snapshot by quantity threshold
+    // 1. Filter the latest snapshot by the user-defined quantity threshold.
     const filteredBidsRaw = latest.bids.filter(
       (b) => parseFloat(b[1]) >= quantityThreshold
     );
@@ -107,15 +126,15 @@ const Scene = ({
       return { snapshots: [] };
     }
 
-    // 2. Calculate Center Price from the filtered data
+    // 2. Calculate the center price to keep the visualization centered.
     const highestBid = parseFloat(filteredBidsRaw[0][0]);
     const lowestAsk = parseFloat(filteredAsksRaw[0][0]);
     const centerPrice = (highestBid + lowestAsk) / 2;
 
-    // 3. Calculate Cumulative Depth for the latest snapshot
+    // 3. Calculate cumulative depth for the latest snapshot. This creates the "wall" effect.
     let cumulativeBidQty = 0;
     const latestBids = [...filteredBidsRaw]
-      .sort((a, b) => parseFloat(b[0]) - parseFloat(a[0])) // Ensure descending for cumulative calc
+      .sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]))
       .map((b) => {
         const price = parseFloat(b[0]);
         const quantity = parseFloat(b[1]);
@@ -125,7 +144,7 @@ const Scene = ({
 
     let cumulativeAskQty = 0;
     const latestAsks = [...filteredAsksRaw]
-      .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0])) // Ensure ascending for cumulative calc
+      .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
       .map((a) => {
         const price = parseFloat(a[0]);
         const quantity = parseFloat(a[1]);
@@ -133,7 +152,7 @@ const Scene = ({
         return { price, quantity, cumulativeQuantity: cumulativeAskQty };
       });
 
-    // 4. Identify Pressure Zones (high volume areas)
+    // 4. Identify pressure zones by finding the top 5 levels with the highest volume.
     let pressureZones = new Set();
     if (showPressureZones) {
       const allOrders = [...latestBids, ...latestAsks].sort(
@@ -142,7 +161,7 @@ const Scene = ({
       pressureZones = new Set(allOrders.slice(0, 5).map((p) => p.price));
     }
 
-    // 5. Process historical data once
+    // 5. Process historical data for the "ghost" trail effect.
     const processedHistory = history.slice(1).map((snapshot) => ({
       timestamp: snapshot.timestamp,
       bids: snapshot.bids
@@ -153,6 +172,7 @@ const Scene = ({
         .filter((a) => a.quantity >= quantityThreshold),
     }));
 
+    // Update the parent component's state with the newly calculated pressure zones.
     setPressureZones(pressureZones);
 
     return {
@@ -180,6 +200,7 @@ const Scene = ({
     processedHistory,
   } = processedData;
 
+  // Determines the color of a bar based on its type and state (hovered, pressure zone, etc.).
   const getBarColor = (type, price, isHovered) => {
     if (isHovered) return COLORS.highlight;
     if (highlightedPrice && price === highlightedPrice) return COLORS.highlight;
@@ -189,7 +210,7 @@ const Scene = ({
     return type === "bid" ? COLORS.bid : COLORS.ask;
   };
 
-  // Render a fallback if there's no data to display
+  // Render a fallback message if there's no data to display.
   if (!latestBids || !latestAsks) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-gray-800 text-white">
@@ -229,7 +250,7 @@ const Scene = ({
       />
 
       <RotatingGroup autoRotate={autoRotate}>
-        {/* --- LATEST SNAPSHOT (Interactive) --- */}
+        {/* --- LATEST SNAPSHOT (Front layer, interactive) --- */}
         {latestAsks.map((ask) => (
           <Bar
             key={`ask-${ask.price}`}
@@ -259,9 +280,9 @@ const Scene = ({
           />
         ))}
 
-        {/* --- HISTORICAL DATA (Optimized "Ghosts") --- */}
+        {/* --- HISTORICAL DATA (Rendered as non-interactive "ghosts") --- */}
         {processedHistory?.map((snapshot, historyIndex) => {
-          // Fade out older snapshots
+          // Fade out older snapshots for a cleaner look.
           const opacity = Math.max(0, 0.3 - historyIndex * 0.01);
           if (opacity === 0) return null;
 
@@ -300,16 +321,20 @@ const Scene = ({
           );
         })}
 
-        {/* --- Ticks, Labels, and Info --- */}
+        {/* --- UI Elements within the 3D Scene --- */}
         <PriceTicks
           bids={latestBids}
           asks={latestAsks}
           centerPrice={centerPrice}
         />
-        <HoverInfo data={hoveredData} centerPrice={centerPrice} />
+        <HoverInfo
+          data={hoveredData}
+          centerPrice={centerPrice}
+          colors={COLORS}
+        />
       </RotatingGroup>
 
-      {/* --- Axes Labels (Attached to scene) --- */}
+      {/* --- Static Axes Labels (Attached to the main scene) --- */}
       {centerPrice > 0 && (
         <>
           <Text

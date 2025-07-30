@@ -1,5 +1,12 @@
 import { useTheme } from "@/context/ThemeContext";
 
+/**
+ * A UI component that provides all the interactive controls for the visualizer.
+ * This component is purely presentational; it receives its state and the functions
+ * to update that state as props from its parent component (`AppContent`).
+ *
+ * @param {object} props - Contains all state values and setter functions.
+ */
 const ControlPanel = ({
   symbol,
   setSymbol,
@@ -13,9 +20,11 @@ const ControlPanel = ({
   setSearchPrice,
   timeRange,
   setTimeRange,
-  pressureZones,
+  pressureZones, // A Set of pressure zone prices passed from the parent
 }) => {
   const { theme, toggleTheme } = useTheme();
+
+  // Convert the Set of pressure zones to an array for easier rendering with .map().
   const pressureZoneArray = Array.from(pressureZones);
 
   return (
@@ -30,7 +39,7 @@ const ControlPanel = ({
         GoQuant Visualizer
       </h1>
 
-      {/* --- Main Controls --- */}
+      {/* --- Main Controls Section --- */}
       <div className="space-y-4 border-b border-gray-700 pb-4 mb-4">
         <div>
           <label htmlFor="symbol" className="block text-sm font-medium mb-1">
@@ -65,7 +74,7 @@ const ControlPanel = ({
         </div>
       </div>
 
-      {/* --- Filters & Visualization Modes --- */}
+      {/* --- Filters & Visualization Modes Section --- */}
       <div className="space-y-4 border-b border-gray-700 pb-4 mb-4">
         <h2 className="text-lg font-semibold text-purple-300">
           Filters & Modes
@@ -121,45 +130,7 @@ const ControlPanel = ({
         </div>
       </div>
 
-      {/* --- Time Range Selector --- */}
-      {/* <div className="space-y-2 border-b border-gray-700 pb-4 mb-4">
-        <h2 className="text-lg font-semibold text-purple-300">
-          Time Aggregation
-        </h2>
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            onClick={() => setTimeRange("realtime")}
-            className={`p-2 text-sm rounded transition-colors ${
-              timeRange === "realtime"
-                ? "bg-purple-600"
-                : "bg-gray-700 hover:bg-gray-600"
-            }`}
-          >
-            Real-time
-          </button>
-          <button
-            onClick={() => setTimeRange("1min")}
-            className={`p-2 text-sm rounded transition-colors ${
-              timeRange === "1min"
-                ? "bg-purple-600"
-                : "bg-gray-700 hover:bg-gray-600"
-            }`}
-          >
-            1 min
-          </button>
-          <button
-            onClick={() => setTimeRange("5min")}
-            className={`p-2 text-sm rounded transition-colors ${
-              timeRange === "5min"
-                ? "bg-purple-600"
-                : "bg-gray-700 hover:bg-gray-600"
-            }`}
-          >
-            5 min
-          </button>
-        </div>
-      </div> */}
-
+      {/* --- Time Aggregation Section --- */}
       <div className="space-y-2 border-b border-gray-700 pb-4 mb-4">
         <h2 className="text-lg font-semibold text-purple-400">
           Time Aggregation
@@ -185,7 +156,7 @@ const ControlPanel = ({
         </div>
       </div>
 
-      {/* --- Theme Toggle --- */}
+      {/* --- Theme Toggle Section --- */}
       <div className="flex items-center justify-between border-b border-gray-700 pb-4 mb-4">
         <label htmlFor="theme-toggle" className="text-sm font-medium">
           {theme === "dark" ? "Dark Mode" : "Light Mode"}
@@ -202,7 +173,8 @@ const ControlPanel = ({
         </label>
       </div>
 
-      {/* --- Pressure Zone Stats --- */}
+      {/* --- Pressure Zone Stats Section --- */}
+      {/* This section is conditionally rendered only if the feature is enabled and there are zones to display. */}
       {showPressureZones && pressureZoneArray.length > 0 && (
         <div className="border-b border-gray-700 pb-4 mb-4">
           <h2 className="text-lg font-semibold mb-2 text-purple-400">
@@ -222,7 +194,7 @@ const ControlPanel = ({
         </div>
       )}
 
-      {/* --- Legend --- */}
+      {/* --- Legend Section --- */}
       <div>
         <h2 className="text-lg font-semibold mb-2 text-purple-300">Legend</h2>
         <div className="space-y-2 text-sm">
@@ -234,6 +206,7 @@ const ControlPanel = ({
             <div className="w-4 h-4 rounded-full bg-red-500 mr-2 border border-red-300"></div>
             <span>Ask (Sell Orders)</span>
           </div>
+          {/* Legend items are also rendered conditionally based on the current settings. */}
           {showPressureZones && (
             <div className="flex items-center">
               <div className="w-4 h-4 rounded-full bg-fuchsia-500 mr-2 border border-fuchsia-300 shadow-[0_0_8px_#ff00ff]"></div>
